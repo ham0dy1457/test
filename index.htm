@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>24306 Capstone Project</title>
+  <style>
+    /* Base Styles */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f4f4;
+      scroll-behavior: smooth;
+    }
+
+    .container {
+      text-align: center;
+      padding: 20px;
+      background: #fff;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+      max-width: 400px;
+      width: 100%;
+    }
+
+    #ip-page {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .input-section {
+      display: flex;
+      flex-direction: column; /* Stack elements vertically */
+      align-items: center;
+      gap: 15px; /* Add space between elements */
+    }
+
+    #ip-page h1 {
+      margin: 0;
+    }
+
+    #ip-page input[type="text"] {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 5px;
+    }
+
+    #ip-page button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #87bfc0;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    #ip-page button:hover {
+      background: #6ea8ab;
+    }
+
+    /* Graph Style Adjustments */
+    canvas {
+      width: 100% !important;
+      height: 300px !important;
+    }
+
+    /* Main Page Styles */
+    .main-container {
+      display: flex;
+      flex-direction: row;
+      width: 100%;
+      height: 100vh;
+    }
+
+    .left-panel {
+      width: 60%;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .right-panel {
+      width: 40%;
+      padding: 20px;
+      background-color: #f4f4f4;
+      box-shadow: 2px 0px 10px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    /* Reduced Height for Sensor Boxes */
+    .sensor-box {
+      height: 100px;  /* Reduced height from 150px */
+      padding: 20px 10px;
+      font-size: 30px; /* Adjusted font size to match the smaller height */
+      color: white;
+      border-radius: 30px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .lm35 { background: #a8d5ba; }
+    .ir-module { background: #87bfc0; }
+    .max30102 { background: #587b8c; }
+    .mpu6050 { background: #adbcc3; }
+
+    /* Loading Page (Infinity Preloader) */
+    #loading-page {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    #loading-page main {
+      padding: 1.5em 0;
+    }
+
+    #loading-page .ip {
+      width: 16em;
+      height: 8em;
+    }
+
+    #loading-page .ip__track {
+      stroke: hsl(223, 90%, 90%);
+      transition: stroke 0.3s;
+    }
+
+    #loading-page .ip__worm1, .ip__worm2 {
+      animation: worm1 2s linear infinite;
+    }
+
+    #loading-page .ip__worm2 {
+      animation-name: worm2;
+    }
+
+    @keyframes worm1 {
+      from {
+        stroke-dashoffset: 0;
+      }
+      50% {
+        animation-timing-function: steps(1);
+        stroke-dashoffset: -358;
+      }
+      50.01% {
+        animation-timing-function: linear;
+        stroke-dashoffset: 358;
+      }
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    @keyframes worm2 {
+      from {
+        stroke-dashoffset: 358;
+      }
+      50% {
+        stroke-dashoffset: 0;
+      }
+      to {
+        stroke-dashoffset: -358;
+      }
+    }
+
+    /* Mobile View Adjustments */
+    @media only screen and (max-width: 768px) {
+      .main-container {
+        flex-direction: column;
+      }
+
+      .left-panel {
+        width: 100%;
+        margin-bottom: 20px;
+      }
+
+      .right-panel {
+        width: 100%;
+      }
+
+      .sensor-section {
+        width: 100%;
+        margin-bottom: 20px;
+      }
+
+      /* Adjust canvas height for smaller screens */
+      #lm35Graph, #irGraph, #max30102Graph {
+        height: 200px;  /* Reduce height on smaller screens */
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- IP Address Input Page -->
+<div id="ip-page" class="container">
+  <div class="input-section">
+    <h1>Configure ESP32 IP Address</h1>
+    <form id="ip-form">
+      <input type="text" id="esp32-ip" placeholder="Enter ESP32 IP Address" required>
+      <button type="submit">Save IP</button>
+    </form>
+  </div>
+</div>
+
+<!-- Loading Page (Infinity Preloader) -->
+<div id="loading-page" style="display: none; background-color: #001f3d;">
+  <main>
+    <svg class="ip" viewBox="0 0 256 128" width="256px" height="128px" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="grad1" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#5ebd3e" />
+          <stop offset="33%" stop-color="#ffb900" />
+          <stop offset="67%" stop-color="#f78200" />
+          <stop offset="100%" stop-color="#e23838" />
+        </linearGradient>
+        <linearGradient id="grad2" x1="1" y1="0" x2="0" y2="0">
+          <stop offset="0%" stop-color="#e23838" />
+          <stop offset="33%" stop-color="#973999" />
+          <stop offset="67%" stop-color="#009cdf" />
+          <stop offset="100%" stop-color="#5ebd3e" />
+        </linearGradient>
+      </defs>
+      <g fill="none" stroke-linecap="round" stroke-width="16">
+        <g class="ip__track" stroke="#973999">
+          <path d="M8,64s0-56,60-56,60,112,120,112,60-56,60-56"/>
+          <path d="M248,64s0-56-60-56-60,112-120,112S8,64,8,64"/>
+        </g>
+        <g stroke-dasharray="180 656">
+          <path class="ip__worm1" stroke="url(#grad1)" stroke-dashoffset="0" d="M8,64s0-56,60-56,60,112,120,112,60-56,60-56"/>
+          <path class="ip__worm2" stroke="url(#grad2)" stroke-dashoffset="358" d="M248,64s0-56-60-56-60,112-120,112S8,64,8,64"/>
+        </g>
+      </g>
+    </svg>
+  </main>
+</div>
+
+<!-- Main Page -->
+<div id="main-page" class="main-container" style="display: none;">
+  <!-- Left Panel -->
+  <div class="left-panel">
+    <img src="https://i.imgur.com/JkYtSXf.png" alt="Doctor Photo">
+    <h1 class="title">Non-Invasive Glucose Monitoring with ESP32 and Integrated Biometric Sensors</h1>
+
+    <div class="sensor-box lm35" id="temperature">Temperature: --</div>
+    <div class="sensor-box ir-module" id="ir-value">IR Sensor: --</div>
+    <div class="sensor-box max30102" id="glucose">BPM: --</div>
+    <div class="sensor-box mpu6050" id="pulse">Fall Detection: --</div>
+  </div>
+
+  <!-- Right Panel -->
+<div class="right-panel">
+  <div class="sensor-section" id="sensor1">
+    <h2>LM35 Temperature Sensor Graph</h2>
+    <canvas id="lm35Graph"></canvas>
+    <div class="logo-section">
+    </div>
+  </div>
+
+  <div class="sensor-section" id="sensor2">
+    <h2>IR Sensor Glucose Graph</h2>
+    <canvas id="irGraph"></canvas>
+    <div class="logo-section">
+      
+    </div>
+  </div>
+
+  <div class="sensor-section" id="sensor3">
+    <h2>MAX30102 BPM Graph</h2>
+    <canvas id="max30102Graph"></canvas>
+    <div class="logo-section">
+      <a href="https://drive.google.com/uc?export=download&id=1UydiWayBytlnzu6DAGWC6MhEkqnrNrs0" target="_blank">
+        <img src="https://i.imgur.com/PCf1ne2.png" alt="Portfolio Logo" style="width: 50px; margin: 10px;">
+      </a>
+      <a href="https://drive.google.com/uc?export=download&id=1EIM2GKvtwz7Eq_q7E5LtKdY9aWgjKr3U" target="_blank">
+        <img src="https://i.imgur.com/tpjMjKo.png" alt="Poster Logo" style="width: 50px; margin: 10px;">
+      </a>
+    </div>
+  </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // IP Address Configuration
+  const ipForm = document.getElementById('ip-form');
+  const ipPage = document.getElementById('ip-page');
+  const loadingPage = document.getElementById('loading-page');
+  const mainPage = document.getElementById('main-page');
+
+  ipForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const ip = document.getElementById('esp32-ip').value;
+    localStorage.setItem('esp32IP', ip);
+    ipPage.style.display = 'none';
+    loadingPage.style.display = 'flex';
+
+    setTimeout(() => {
+      loadingPage.style.display = 'none';
+      mainPage.style.display = 'flex';
+    }, 3000);
+  });
+
+  // Chart Initialization
+  const ctxLM35 = document.getElementById('lm35Graph')?.getContext('2d');
+  const ctxIR = document.getElementById('irGraph')?.getContext('2d');
+  const ctxMax30102 = document.getElementById('max30102Graph')?.getContext('2d');
+
+  const lm35Chart = new Chart(ctxLM35, {
+    type: 'line',
+    data: { labels: [], datasets: [{ label: 'Temperature (°C)', data: [] }] },
+    options: { responsive: true }
+  });
+
+  const irChart = new Chart(ctxIR, {
+    type: 'line',
+    data: { labels: [], datasets: [{ label: 'IR Sensor Value', data: [] }] },
+    options: { responsive: true }
+  });
+
+  const max30102Chart = new Chart(ctxMax30102, {
+    type: 'line',
+    data: { labels: [], datasets: [{ label: 'BPM', data: [] }] },
+    options: { responsive: true }
+  });
+</script>
+
+</body>
+</html>
